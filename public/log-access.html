@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Acesso Rápido - Log Reader</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+            rel="stylesheet"
+        />
+    </head>
+    <body class="bg-gray-900 min-h-screen flex items-center justify-center">
+        <div class="text-center">
+            <div class="bg-gray-800 p-8 rounded-lg shadow-2xl">
+                <i class="fas fa-rocket text-6xl text-blue-400 mb-6"></i>
+                <h1 class="text-3xl font-bold text-white mb-4">
+                    Acesso Rápido ao Log Reader
+                </h1>
+                <p class="text-gray-400 mb-8">
+                    Acesse seus logs de forma independente e segura
+                </p>
+
+                <div class="space-y-4">
+                    <a
+                        href="/logs"
+                        class="block w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-lg transition duration-200 flex items-center justify-center"
+                    >
+                        <i class="fas fa-file-alt mr-3 text-xl"></i>
+                        <div>
+                            <div class="text-lg">Acessar Log Reader</div>
+                            <div class="text-sm opacity-75">
+                                Senha: Jujuba090!
+                            </div>
+                        </div>
+                    </a>
+
+                    <div class="text-xs text-gray-500 mt-4">
+                        <i class="fas fa-shield-alt mr-1"></i>
+                        Acesso direto e independente do sistema principal
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 bg-gray-800 p-6 rounded-lg">
+                <h2 class="text-lg font-semibold text-white mb-4">
+                    <i class="fas fa-info-circle mr-2"></i>Recursos do Log
+                    Reader
+                </h2>
+                <div
+                    class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-300"
+                >
+                    <div class="flex items-center">
+                        <i class="fas fa-eye text-blue-400 mr-2"></i>
+                        Visualização em tempo real
+                    </div>
+                    <div class="flex items-center">
+                        <i class="fas fa-filter text-green-400 mr-2"></i>
+                        Filtros por nível e busca
+                    </div>
+                    <div class="flex items-center">
+                        <i class="fas fa-download text-purple-400 mr-2"></i>
+                        Download de arquivos
+                    </div>
+                    <div class="flex items-center">
+                        <i class="fas fa-trash text-red-400 mr-2"></i>
+                        Limpeza de logs
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // Auto redirect para logs após 3 segundos se clicar na tela
+            document.body.addEventListener("click", function () {
+                setTimeout(() => {
+                    window.location.href = "/logs";
+                }, 1000);
+            });
+        </script>
+    </body>
+</html>

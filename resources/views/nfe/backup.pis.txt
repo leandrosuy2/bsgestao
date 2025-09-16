@@ -1,0 +1,61 @@
+<!-- PIS -->
+        <div class="border-t pt-4">
+            <h4 class="font-medium text-green-900 mb-3 flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                </svg>
+                PIS (Programa de Integração Social)
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 bg-green-50 p-4 rounded-lg">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">PIS CST *</label>
+                    <select name="itens[${itemIndex}][pis_cst]" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                        <option value="01" selected>01 - Operação Tributável (base de cálculo = valor da operação alíquota normal)</option>
+                        <option value="02">02 - Operação Tributável (base de cálculo = valor da operação (alíquota diferenciada))</option>
+                        <option value="03">03 - Operação Tributável (base de cálculo = quantidade vendida x alíquota por unidade de produto)</option>
+                        <option value="04">04 - Operação Tributável (tributação monofásica (alíquota zero))</option>
+                        <option value="05">05 - Operação Tributável (substituição tributária)</option>
+                        <option value="06">06 - Operação Tributável (alíquota zero)</option>
+                        <option value="07">07 - Operação Isenta da Contribuição</option>
+                        <option value="08">08 - Operação Sem Incidência da Contribuição</option>
+                        <option value="09">09 - Operação com Suspensão da Contribuição</option>
+                        <option value="99">99 - Outras Operações</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">PIS Alíquota (%)</label>
+                    <input type="number" name="itens[${itemIndex}][pis_aliquota]" step="0.01" min="0" max="100" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500" value="0.65" placeholder="0.65">
+                </div>
+            </div>
+        </div>
+        
+        <!-- COFINS -->
+        <div class="border-t pt-4">
+            <h4 class="font-medium text-purple-900 mb-3 flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v2a2 2 0 002 2z"></path>
+                </svg>
+                COFINS (Contribuição para Financiamento da Seguridade Social)
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 bg-purple-50 p-4 rounded-lg">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">COFINS CST *</label>
+                    <select name="itens[${itemIndex}][cofins_cst]" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500" required>
+                        <option value="01" selected>01 - Operação Tributável (base de cálculo = valor da operação alíquota normal)</option>
+                        <option value="02">02 - Operação Tributável (base de cálculo = valor da operação (alíquota diferenciada))</option>
+                        <option value="03">03 - Operação Tributável (base de cálculo = quantidade vendida x alíquota por unidade de produto)</option>
+                        <option value="04">04 - Operação Tributável (tributação monofásica (alíquota zero))</option>
+                        <option value="05">05 - Operação Tributável (substituição tributária)</option>
+                        <option value="06">06 - Operação Tributável (alíquota zero)</option>
+                        <option value="07">07 - Operação Isenta da Contribuição</option>
+                        <option value="08">08 - Operação Sem Incidência da Contribuição</option>
+                        <option value="09">09 - Operação com Suspensão da Contribuição</option>
+                        <option value="99">99 - Outras Operações</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">COFINS Alíquota (%)</label>
+                    <input type="number" name="itens[${itemIndex}][cofins_aliquota]" step="0.01" min="0" max="100" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500" value="3.00" placeholder="3.00">
+                </div>
+            </div>
+        </div>

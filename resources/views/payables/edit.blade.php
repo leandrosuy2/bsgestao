@@ -1,0 +1,186 @@
+@extends('dashboard.layout')
+
+@section('title', 'Editar Conta a Pagar')
+
+@section('content')
+<div class="max-w-4xl mx-auto">
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">Editar Conta a Pagar</h1>
+        <p class="text-gray-600">Atualize as informações da conta</p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm border">
+        <form method="POST" action="{{ route('payables.update', $payable) }}" class="p-6 space-y-6">
+            @csrf
+            @method('PUT')
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Descrição -->
+                <div class="md:col-span-2">
+                    <label for="descricao" class="block text-sm font-medium text-gray-700 mb-1">
+                        Descrição <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="descricao" name="descricao" value="{{ old('descricao', $payable->descricao) }}"
+                           class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('descricao') border-red-500 @enderror"
+                           placeholder="Ex: Pagamento do aluguel, Compra de produtos">
+                    @error('descricao')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Pessoa -->
+                <div>
+                    <label for="pessoa" class="block text-sm font-medium text-gray-700 mb-1">
+                        Fornecedor/Pessoa <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="pessoa" name="pessoa" value="{{ old('pessoa', $payable->pessoa) }}"
+                           class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('pessoa') border-red-500 @enderror"
+                           placeholder="Nome do fornecedor ou pessoa">
+                    @error('pessoa')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Categoria -->
+                <div>
+                    <label for="categoria" class="block text-sm font-medium text-gray-700 mb-1">
+                        Categoria <span class="text-red-500">*</span>
+                    </label>
+                    <select id="categoria" name="categoria"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('categoria') border-red-500 @enderror">
+                        <option value="">Selecione uma categoria</option>
+                        <option value="aluguel" {{ old('categoria', $payable->categoria) == 'aluguel' ? 'selected' : '' }}>Aluguel</option>
+                        <option value="fornecedor" {{ old('categoria', $payable->categoria) == 'fornecedor' ? 'selected' : '' }}>Fornecedor</option>
+                        <option value="servico" {{ old('categoria', $payable->categoria) == 'servico' ? 'selected' : '' }}>Serviço</option>
+                        <option value="imposto" {{ old('categoria', $payable->categoria) == 'imposto' ? 'selected' : '' }}>Imposto</option>
+                        <option value="salario" {{ old('categoria', $payable->categoria) == 'salario' ? 'selected' : '' }}>Salário</option>
+                        <option value="energia" {{ old('categoria', $payable->categoria) == 'energia' ? 'selected' : '' }}>Energia</option>
+                        <option value="agua" {{ old('categoria', $payable->categoria) == 'agua' ? 'selected' : '' }}>Água</option>
+                        <option value="internet" {{ old('categoria', $payable->categoria) == 'internet' ? 'selected' : '' }}>Internet</option>
+                        <option value="telefone" {{ old('categoria', $payable->categoria) == 'telefone' ? 'selected' : '' }}>Telefone</option>
+                        <option value="outros" {{ old('categoria', $payable->categoria) == 'outros' ? 'selected' : '' }}>Outros</option>
+                    </select>
+                    @error('categoria')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Valor -->
+                <div>
+                    <label for="valor" class="block text-sm font-medium text-gray-700 mb-1">
+                        Valor <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">R$</span>
+                        <input type="number" id="valor" name="valor" value="{{ old('valor', $payable->valor) }}" step="0.01" min="0.01"
+                               class="w-full pl-10 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('valor') border-red-500 @enderror"
+                               placeholder="0,00">
+                    </div>
+                    @error('valor')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Data de Vencimento -->
+                <div>
+                    <label for="data_vencimento" class="block text-sm font-medium text-gray-700 mb-1">
+                        Data de Vencimento <span class="text-red-500">*</span>
+                    </label>
+                    <input type="date" id="data_vencimento" name="data_vencimento" value="{{ old('data_vencimento', $payable->data_vencimento) }}"
+                           class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('data_vencimento') border-red-500 @enderror">
+                    @error('data_vencimento')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Status -->
+                <div>
+                    <label for="status" class="block text-sm font-medium text-gray-700 mb-1">
+                        Status <span class="text-red-500">*</span>
+                    </label>
+                    <select id="status" name="status"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('status') border-red-500 @enderror">
+                        <option value="pendente" {{ old('status', $payable->status) == 'pendente' ? 'selected' : '' }}>Pendente</option>
+                        <option value="pago" {{ old('status', $payable->status) == 'pago' ? 'selected' : '' }}>Pago</option>
+                        <option value="atrasado" {{ old('status', $payable->status) == 'atrasado' ? 'selected' : '' }}>Atrasado</option>
+                    </select>
+                    @error('status')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Data de Pagamento -->
+                <div>
+                    <label for="data_pagamento" class="block text-sm font-medium text-gray-700 mb-1">
+                        Data de Pagamento
+                    </label>
+                    <input type="date" id="data_pagamento" name="data_pagamento" value="{{ old('data_pagamento', $payable->data_pagamento) }}"
+                           class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('data_pagamento') border-red-500 @enderror">
+                    @error('data_pagamento')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Forma de Pagamento -->
+                <div>
+                    <label for="forma_pagamento" class="block text-sm font-medium text-gray-700 mb-1">
+                        Forma de Pagamento <span class="text-red-500">*</span>
+                    </label>
+                    <select id="forma_pagamento" name="forma_pagamento"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('forma_pagamento') border-red-500 @enderror">
+                        <option value="">Selecione a forma de pagamento</option>
+                        <option value="boleto" {{ old('forma_pagamento', $payable->forma_pagamento) == 'boleto' ? 'selected' : '' }}>Boleto</option>
+                        <option value="transferencia" {{ old('forma_pagamento', $payable->forma_pagamento) == 'transferencia' ? 'selected' : '' }}>Transferência</option>
+                        <option value="dinheiro" {{ old('forma_pagamento', $payable->forma_pagamento) == 'dinheiro' ? 'selected' : '' }}>Dinheiro</option>
+                        <option value="pix" {{ old('forma_pagamento', $payable->forma_pagamento) == 'pix' ? 'selected' : '' }}>PIX</option>
+                        <option value="cartao_credito" {{ old('forma_pagamento', $payable->forma_pagamento) == 'cartao_credito' ? 'selected' : '' }}>Cartão de Crédito</option>
+                        <option value="cartao_debito" {{ old('forma_pagamento', $payable->forma_pagamento) == 'cartao_debito' ? 'selected' : '' }}>Cartão de Débito</option>
+                        <option value="cheque" {{ old('forma_pagamento', $payable->forma_pagamento) == 'cheque' ? 'selected' : '' }}>Cheque</option>
+                    </select>
+                    @error('forma_pagamento')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Comprovante -->
+                <div>
+                    <label for="comprovante" class="block text-sm font-medium text-gray-700 mb-1">
+                        Comprovante
+                    </label>
+                    <input type="text" id="comprovante" name="comprovante" value="{{ old('comprovante', $payable->comprovante) }}"
+                           class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('comprovante') border-red-500 @enderror"
+                           placeholder="Número do comprovante ou referência">
+                    @error('comprovante')
+                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+            </div>
+
+            <!-- Observações -->
+            <div>
+                <label for="observacoes" class="block text-sm font-medium text-gray-700 mb-1">
+                    Observações
+                </label>
+                <textarea id="observacoes" name="observacoes" rows="4"
+                          class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('observacoes') border-red-500 @enderror"
+                          placeholder="Informações adicionais sobre esta conta">{{ old('observacoes', $payable->observacoes) }}</textarea>
+                @error('observacoes')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <!-- Botões -->
+            <div class="flex justify-end gap-3 pt-6 border-t border-gray-200">
+                <a href="{{ route('payables.index') }}"
+                   class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition">
+                    Cancelar
+                </a>
+                <button type="submit"
+                        class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
+                    Atualizar Conta
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+@endsection
