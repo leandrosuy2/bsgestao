@@ -234,6 +234,13 @@ Route::middleware(['auth', 'company.access'])->group(function () {
         Route::get('/api/data', [SalesReportController::class, 'getSalesDataApi'])->name('sales-reports.api.data');
     });
 
+    // Rotas de Cancelamento de Vendas
+    Route::prefix('sales/cancellation')->group(function () {
+        Route::get('/', [\App\Http\Controllers\SaleCancellationController::class, 'index'])->name('sales.cancellation.index');
+        Route::get('/{id}', [\App\Http\Controllers\SaleCancellationController::class, 'show'])->name('sales.cancellation.show');
+        Route::post('/{id}/cancel', [\App\Http\Controllers\SaleCancellationController::class, 'cancelAjax'])->name('sales.cancellation.cancel');
+    });
+
     // Relatórios de Controle de Estoque
     Route::prefix('stock-control-reports')->group(function () {
         Route::get('/', [StockControlReportController::class, 'index'])->name('stock-control-reports.index');

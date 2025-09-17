@@ -27,6 +27,7 @@ class Sale extends Model
         'sold_at',
         'cancelled_at',
         'cancellation_reason',
+        'cancelled_by',
     ];
 
     protected $casts = [
@@ -71,6 +72,11 @@ class Sale extends Model
     public function company()
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function cancelledBy()
+    {
+        return $this->belongsTo(User::class, 'cancelled_by');
     }
 
     // Verificar se é pagamento a prazo
