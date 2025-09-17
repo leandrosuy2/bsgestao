@@ -264,7 +264,25 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($deliveryReceipt->items as $index => $item)
+                    @php
+                        $totalKilos = 0;
+                    @endphp
+                    @foreach($sale->items as $index => $item)
+                        @php
+                            // Extrair peso do nome do produto
+                            $pesoPorUnidade = 0;
+                            $pesoTotal = 0;
+                            
+                            // Procurar por padrões de peso no nome
+                            if (preg_match('/(\d+)\s*KG/i', $item->product_name, $matches)) {
+                                $pesoPorUnidade = (float)$matches[1];
+                            } elseif (preg_match('/(\d+)\s*T\s*(\d+)\s*KG/i', $item->product_name, $matches)) {
+                                $pesoPorUnidade = ((float)$matches[1] * 1000) + (float)$matches[2];
+                            }
+                            
+                            $pesoTotal = $pesoPorUnidade * $item->quantity;
+                            $totalKilos += $pesoTotal;
+                        @endphp
                         <tr>
                             <td class="center">{{ $index + 1 }}</td>
                             <td class="item-nome">
@@ -272,20 +290,52 @@
                                 @if($item->unit_price > 0)
                                     <br><small>R$ {{ number_format($item->unit_price, 2, ',', '.') }} cada</small>
                                 @endif
-                            </td>
-                            <td class="center">{{ $item->quantity_expected }}</td>
-                            <td class="center">{{ $item->quantity_received }}</td>
-                            <td class="right">R$ {{ number_format($item->unit_price, 2, ',', '.') }}</td>
-                            <td class="right">
-                                @if($item->total_price > 0)
-                                    R$ {{ number_format($item->total_price, 2, ',', '.') }}
-                                @else
-                                    -
+                                @if($pesoPorUnidade > 0)
+                                    <br><small style="color: #007bff; font-weight: bold;">
+                                        Peso: {{ $pesoPorUnidade }} KG cada
+                                    </small>
+                                @endif
+                                @if($item->discount_amount > 0)
+                                    <br><small style="color: #dc3545;">
+                                        Desconto: R$ {{ number_format($item->discount_amount, 2, ',', '.') }}
+                                        @if($item->discount_type === 'percentage')
+                                            ({{ $item->discount_percentage }}%)
+                                        @endif
+                                    </small>
                                 @endif
                             </td>
                             <td class="center">
-                                <span style="color: {{ $item->checked ? '#28a745' : '#6c757d' }} !important; font-weight: bold; font-size: 16px; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);">
-                                    {{ $item->checked ? '✓' : '☐' }}
+                                {{ $item->quantity }}
+                                @if($pesoPorUnidade > 0)
+                                    <br><small style="color: #007bff; font-weight: bold;">
+                                        ({{ $pesoTotal }} KG)
+                                    </small>
+                                @endif
+                            </td>
+                            <td class="center">
+                                {{ $item->quantity }}
+                                @if($pesoPorUnidade > 0)
+                                    <br><small style="color: #007bff; font-weight: bold;">
+                                        ({{ $pesoTotal }} KG)
+                                    </small>
+                                @endif
+                            </td>
+                            <td class="right">R$ {{ number_format($item->unit_price, 2, ',', '.') }}</td>
+                            <td class="right">
+                                @if($item->discount_amount > 0)
+                                    <div style="text-decoration: line-through; color: #6c757d; font-size: 12px;">
+                                        R$ {{ number_format($item->total_price, 2, ',', '.') }}
+                                    </div>
+                                    <div style="color: #28a745; font-weight: bold;">
+                                        R$ {{ number_format($item->final_price, 2, ',', '.') }}
+                                    </div>
+                                @else
+                                    R$ {{ number_format($item->final_price, 2, ',', '.') }}
+                                @endif
+                            </td>
+                            <td class="center">
+                                <span style="color: #28a745 !important; font-weight: bold; font-size: 16px; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);">
+                                    ✓
                                 </span>
                             </td>
                         </tr>
@@ -300,16 +350,22 @@
                 <div class="summary-title">📊 Resumo da Entrega</div>
                 <div class="summary-item">
                     <span>Total de Itens:</span>
-                    <span>{{ $deliveryReceipt->total_items }}</span>
+                    <span>{{ $sale->items->count() }}</span>
                 </div>
                 <div class="summary-item">
                     <span>Itens Conferidos:</span>
-                    <span>{{ $deliveryReceipt->checked_items }}</span>
+                    <span>{{ $sale->items->count() }}</span>
                 </div>
                 <div class="summary-item">
                     <span>Progresso:</span>
-                    <span>{{ number_format($deliveryReceipt->progress_percentage, 1) }}%</span>
+                    <span>100%</span>
                 </div>
+                @if($totalKilos > 0)
+                <div class="summary-item" style="border-top: 1px solid #ddd; padding-top: 5px; margin-top: 5px;">
+                    <span style="font-weight: bold; color: #007bff;">Total de Quilos:</span>
+                    <span style="font-weight: bold; color: #007bff; font-size: 16px;">{{ number_format($totalKilos, 1, ',', '.') }} KG</span>
+                </div>
+                @endif
             </div>
             
             <div class="summary-box">

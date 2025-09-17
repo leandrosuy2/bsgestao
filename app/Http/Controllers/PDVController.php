@@ -476,17 +476,35 @@ class PDVController extends Controller
                     $unitPrice = $item['unitario'] ?? 0;
                     $productName = $item['nome'] ?? '';
                     
+                    // Processar descontos por item
+                    $itemDesconto = $item['desconto'] ?? 0;
+                    $itemTipoDesconto = $item['tipoDesconto'] ?? 'value';
+                    $itemValorDesconto = $item['valorDesconto'] ?? 0;
+                    
+                    // Mapear tipo de desconto para valores válidos do enum
+                    $discountType = 'none';
+                    if ($itemDesconto > 0) {
+                        $discountType = $itemTipoDesconto === 'percentage' ? 'percentage' : 'amount';
+                    }
+                    
                     // Se tem ID do produto, buscar o produto real
                     if ($productId && $productId !== '') {
                         $product = Product::forCurrentCompany()->find($productId);
                         if ($product) {
+                            $totalPrice = $product->sale_price * $quantity;
+                            $finalPrice = $totalPrice - $itemDesconto;
+                            
                             SaleItem::create([
                                 'sale_id' => $sale->id,
                                 'product_id' => $product->id,
                                 'product_name' => $product->name, // Nome do produto do banco
                                 'quantity' => $quantity,
                                 'unit_price' => $product->sale_price,
-                                'total_price' => $product->sale_price * $quantity,
+                                'total_price' => $totalPrice,
+                                'final_price' => $finalPrice,
+                                'discount_amount' => $itemDesconto,
+                                'discount_percentage' => $itemTipoDesconto === 'percentage' ? $itemValorDesconto : 0.00,
+                                'discount_type' => $discountType,
                             ]);
                             
                             // Atualizar estoque do produto
@@ -496,13 +514,20 @@ class PDVController extends Controller
                     } else {
                         // Produto avulso - usar product_id = null mas garantir que tem nome
                         $finalProductName = !empty($productName) ? $productName : 'Produto avulso';
+                        $totalPrice = $unitPrice * $quantity;
+                        $finalPrice = $totalPrice - $itemDesconto;
+                        
                         SaleItem::create([
                             'sale_id' => $sale->id,
                             'product_id' => null, // Usar null para produtos avulsos
                             'product_name' => $finalProductName,
                             'quantity' => $quantity,
                             'unit_price' => $unitPrice,
-                            'total_price' => $unitPrice * $quantity,
+                            'total_price' => $totalPrice,
+                            'final_price' => $finalPrice,
+                            'discount_amount' => $itemDesconto,
+                            'discount_percentage' => $itemTipoDesconto === 'percentage' ? $itemValorDesconto : 0.00,
+                            'discount_type' => $discountType,
                         ]);
                     }
                 }

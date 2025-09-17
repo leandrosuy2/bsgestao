@@ -410,6 +410,66 @@
     </div>
   </dialog>
 
+  <!-- Modal de Desconto por Item -->
+  <dialog id="modalDescontoItem">
+    <div class="bg-white rounded-xl shadow-2xl p-6 sm:p-8 w-full">
+      <div class="text-center mb-6">
+        <i class="fas fa-percentage text-3xl sm:text-4xl text-blue-500 mb-4"></i>
+        <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Aplicar Desconto</h2>
+        <p class="text-sm sm:text-base text-gray-600" id="itemDescontoNome">Produto</p>
+      </div>
+      
+      <div class="space-y-4">
+        <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div class="flex items-center space-x-3">
+            <i class="fas fa-info-circle text-blue-500"></i>
+            <div>
+              <p class="font-semibold text-blue-800">Informações do Item</p>
+              <p class="text-blue-600 text-sm" id="itemDescontoInfo">Quantidade x Preço = Total</p>
+            </div>
+          </div>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Desconto:</label>
+          <div class="flex space-x-4 mb-4">
+            <label class="flex items-center">
+              <input type="radio" name="tipoDescontoItem" value="value" checked class="mr-2">
+              <span class="text-sm">Valor (R$)</span>
+            </label>
+            <label class="flex items-center">
+              <input type="radio" name="tipoDescontoItem" value="percentage" class="mr-2">
+              <span class="text-sm">Porcentagem (%)</span>
+            </label>
+          </div>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Valor do Desconto:</label>
+          <input type="number" id="valorDescontoItem" step="0.01" min="0" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                 placeholder="Digite o valor do desconto">
+        </div>
+        
+        <div class="p-3 bg-gray-50 rounded-lg">
+          <p class="text-sm text-gray-600">Total atual: <span id="totalAtualItem" class="font-semibold">R$ 0,00</span></p>
+          <p class="text-sm text-gray-600">Total com desconto: <span id="totalComDescontoItem" class="font-semibold text-green-600">R$ 0,00</span></p>
+        </div>
+        
+        <div class="flex flex-col sm:flex-row gap-3 justify-end">
+          <button onclick="document.getElementById('modalDescontoItem').close()" 
+                  class="w-full sm:w-auto px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-semibold">
+            <i class="fas fa-times mr-2"></i>Cancelar
+          </button>
+          <button onclick="confirmarDescontoItem()" 
+                  class="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+            <i class="fas fa-check mr-2"></i>Aplicar Desconto
+          </button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
   <!-- Modal Finalizar Venda -->
   <dialog id="modalFinalizar">
     <div class="bg-white rounded-xl shadow-2xl p-4 sm:p-6 w-full max-w-2xl">
@@ -995,16 +1055,29 @@
         `;
       } else {
         container.innerHTML = carrinho.map((item, index) => `
-          <div class="flex items-center justify-between bg-gray-50 p-2 rounded-lg">
-            <div class="flex-1 min-w-0">
-              <h4 class="font-semibold text-xs text-gray-900 truncate">${item.nome}</h4>
-              <p class="text-xs text-gray-600">${item.qtd}x R$ ${item.unitario.toFixed(2).replace('.', ',')}</p>
+          <div class="bg-gray-50 p-2 rounded-lg mb-2">
+            <div class="flex items-center justify-between mb-1">
+              <div class="flex-1 min-w-0">
+                <h4 class="font-semibold text-xs text-gray-900 truncate">${item.nome}</h4>
+                <p class="text-xs text-gray-600">${item.qtd}x R$ ${item.unitario.toFixed(2).replace('.', ',')}</p>
+              </div>
+              <div class="flex items-center space-x-1">
+                <button onclick="aplicarDescontoItem(${index})" class="text-blue-500 hover:text-blue-700 p-1" title="Aplicar desconto">
+                  <i class="fas fa-percentage text-xs"></i>
+                </button>
+                <button onclick="removerItem(${index})" class="text-red-500 hover:text-red-700 p-1" title="Remover item">
+                  <i class="fas fa-trash text-xs"></i>
+                </button>
+              </div>
             </div>
-            <div class="flex items-center space-x-2">
-              <span class="font-bold text-green-600 text-sm">R$ ${item.total.toFixed(2).replace('.', ',')}</span>
-              <button onclick="removerItem(${index})" class="text-red-500 hover:text-red-700">
-                <i class="fas fa-trash text-xs"></i>
-              </button>
+            <div class="flex justify-between items-center text-xs">
+              ${item.desconto && item.desconto > 0 ? `
+                <div class="text-gray-500">
+                  <span class="line-through">R$ ${(item.unitario * item.qtd).toFixed(2).replace('.', ',')}</span>
+                  <span class="text-red-600 ml-1">-R$ ${item.desconto.toFixed(2).replace('.', ',')}</span>
+                </div>
+              ` : ''}
+              <span class="font-bold text-green-600">R$ ${item.total.toFixed(2).replace('.', ',')}</span>
             </div>
           </div>
         `).join('');
@@ -1201,6 +1274,127 @@
       
       return toast;
     }
+
+    // Variável para controlar qual item está sendo editado
+    let itemIndexEditando = -1;
+
+    // Aplicar desconto em item específico
+    function aplicarDescontoItem(index) {
+      if (index < 0 || index >= carrinho.length) return;
+      
+      const item = carrinho[index];
+      itemIndexEditando = index;
+      
+      // Preencher informações do modal
+      document.getElementById('itemDescontoNome').textContent = item.nome;
+      document.getElementById('itemDescontoInfo').textContent = 
+        `${item.qtd}x R$ ${item.unitario.toFixed(2).replace('.', ',')} = R$ ${(item.unitario * item.qtd).toFixed(2).replace('.', ',')}`;
+      
+      // Limpar campos
+      document.getElementById('valorDescontoItem').value = '';
+      document.querySelector('input[name="tipoDescontoItem"][value="value"]').checked = true;
+      
+      // Atualizar totais
+      atualizarTotaisDescontoItem();
+      
+      // Mostrar modal
+      document.getElementById('modalDescontoItem').showModal();
+    }
+
+    // Atualizar totais do modal de desconto
+    function atualizarTotaisDescontoItem() {
+      if (itemIndexEditando < 0 || itemIndexEditando >= carrinho.length) return;
+      
+      const item = carrinho[itemIndexEditando];
+      const valorInput = document.getElementById('valorDescontoItem').value;
+      const tipoDesconto = document.querySelector('input[name="tipoDescontoItem"]:checked').value;
+      
+      const totalAtual = item.unitario * item.qtd;
+      document.getElementById('totalAtualItem').textContent = `R$ ${totalAtual.toFixed(2).replace('.', ',')}`;
+      
+      if (valorInput && valorInput > 0) {
+        let desconto = parseFloat(valorInput);
+        
+        if (tipoDesconto === 'percentage') {
+          if (desconto > 100) {
+            desconto = 100;
+            document.getElementById('valorDescontoItem').value = 100;
+          }
+          desconto = (totalAtual * desconto) / 100;
+        } else {
+          if (desconto > totalAtual) {
+            desconto = totalAtual;
+            document.getElementById('valorDescontoItem').value = totalAtual.toFixed(2);
+          }
+        }
+        
+        const totalComDesconto = totalAtual - desconto;
+        document.getElementById('totalComDescontoItem').textContent = `R$ ${totalComDesconto.toFixed(2).replace('.', ',')}`;
+      } else {
+        document.getElementById('totalComDescontoItem').textContent = `R$ ${totalAtual.toFixed(2).replace('.', ',')}`;
+      }
+    }
+
+    // Confirmar desconto do item
+    function confirmarDescontoItem() {
+      if (itemIndexEditando < 0 || itemIndexEditando >= carrinho.length) return;
+      
+      const valorInput = document.getElementById('valorDescontoItem').value;
+      const tipoDesconto = document.querySelector('input[name="tipoDescontoItem"]:checked').value;
+      
+      if (!valorInput || valorInput <= 0) {
+        mostrarToast('Digite um valor válido para o desconto', 'warning');
+        return;
+      }
+      
+      const item = carrinho[itemIndexEditando];
+      const totalAtual = item.unitario * item.qtd;
+      let desconto = parseFloat(valorInput);
+      
+      if (tipoDesconto === 'percentage') {
+        if (desconto > 100) {
+          mostrarToast('Desconto não pode ser maior que 100%', 'error');
+          return;
+        }
+        desconto = (totalAtual * desconto) / 100;
+      } else {
+        if (desconto > totalAtual) {
+          mostrarToast('Desconto não pode ser maior que o total do item', 'error');
+          return;
+        }
+      }
+      
+      // Aplicar desconto ao item
+      item.desconto = desconto;
+      item.total = totalAtual - desconto;
+      item.tipoDesconto = tipoDesconto;
+      item.valorDesconto = parseFloat(valorInput);
+      
+      // Fechar modal
+      document.getElementById('modalDescontoItem').close();
+      
+      // Atualizar carrinho
+      atualizarCarrinho();
+      
+      mostrarToast(`Desconto de R$ ${desconto.toFixed(2).replace('.', ',')} aplicado ao item`, 'success');
+      
+      // Limpar variável
+      itemIndexEditando = -1;
+    }
+
+    // Adicionar event listeners para o modal de desconto
+    document.addEventListener('DOMContentLoaded', function() {
+      const valorInput = document.getElementById('valorDescontoItem');
+      const radioButtons = document.querySelectorAll('input[name="tipoDescontoItem"]');
+      
+      if (valorInput) {
+        valorInput.addEventListener('input', atualizarTotaisDescontoItem);
+      }
+      
+      radioButtons.forEach(radio => {
+        radio.addEventListener('change', atualizarTotaisDescontoItem);
+      });
+    });
 
     // Finalizar venda
     function finalizarVenda() {
@@ -1502,8 +1696,20 @@
       
       const sellerSelectElement = safeGetElementById('sellerSelect');
 
+      // Preparar itens com descontos individuais
+      const itensComDesconto = carrinho.map(item => ({
+        id: item.id,
+        nome: item.nome,
+        qtd: item.qtd,
+        unitario: item.unitario,
+        total: item.total,
+        desconto: item.desconto || 0,
+        tipoDesconto: item.tipoDesconto || 'value',
+        valorDesconto: item.valorDesconto || 0
+      }));
+
       const dados = {
-        itens: carrinho,
+        itens: itensComDesconto,
         pagamentos: pagamentos,
         seller_id: sellerSelectElement.value || "Sem vendedor",
         customer_id: customerSelectElement ? customerSelectElement.value : null,
