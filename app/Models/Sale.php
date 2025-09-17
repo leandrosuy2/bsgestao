@@ -25,6 +25,8 @@ class Sale extends Model
         'installment_due_date',
         'installment_notes',
         'sold_at',
+        'cancelled_at',
+        'cancellation_reason',
     ];
 
     protected $casts = [
@@ -33,6 +35,7 @@ class Sale extends Model
         'final_total' => 'decimal:2',
         'installment_due_date' => 'date',
         'sold_at' => 'datetime',
+        'cancelled_at' => 'datetime',
     ];
 
     public function cashRegister()

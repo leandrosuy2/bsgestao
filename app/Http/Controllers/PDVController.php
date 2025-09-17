@@ -289,11 +289,90 @@ class PDVController extends Controller
 
     public function cancelSale(Request $request)
     {
-        $sale = Sale::where('user_id', Auth::id())->where('status', 'in_progress')->latest()->first();
-        if ($sale) {
-            $sale->delete();
+        try {
+            $request->validate([
+                'sale_id' => 'nullable|exists:sales,id',
+                'reason' => 'nullable|string|max:500'
+            ]);
+
+            // Buscar venda para cancelar
+            $sale = null;
+            if ($request->sale_id) {
+                $sale = Sale::where('user_id', Auth::id())
+                           ->where('id', $request->sale_id)
+                           ->whereIn('status', ['in_progress', 'completed'])
+                           ->first();
+            } else {
+                // Se não especificou ID, buscar venda em progresso
+                $sale = Sale::where('user_id', Auth::id())
+                           ->where('status', 'in_progress')
+                           ->latest()
+                           ->first();
+            }
+
+            if (!$sale) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Nenhuma venda encontrada para cancelar'
+                ], 404);
+            }
+
+            DB::transaction(function () use ($sale, $request) {
+                // Se a venda já foi finalizada, reverter estoque
+                if ($sale->status === 'completed') {
+                    foreach ($sale->items as $item) {
+                        $product = Product::forCurrentCompany()->find($item->product_id);
+                        if ($product) {
+                            $product->stock_quantity += $item->quantity;
+                            $product->save();
+                        }
+                    }
+
+                    // Reverter movimentações de caixa
+                    $register = $sale->cashRegister;
+                    if ($register) {
+                        $register->movements()->create([
+                            'user_id' => $sale->user_id,
+                            'type' => 'cancellation',
+                            'amount' => -$sale->final_total, // Valor negativo
+                            'description' => 'Cancelamento de venda #' . $sale->id . ($request->reason ? ' - Motivo: ' . $request->reason : ''),
+                        ]);
+                    }
+                }
+
+                // Marcar venda como cancelada
+                $sale->update([
+                    'status' => 'cancelled',
+                    'cancelled_at' => now(),
+                    'cancellation_reason' => $request->reason
+                ]);
+
+                // Log da operação
+                Log::info('Venda cancelada no PDV', [
+                    'sale_id' => $sale->id,
+                    'user_id' => Auth::id(),
+                    'reason' => $request->reason,
+                    'was_completed' => $sale->status === 'completed'
+                ]);
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Venda cancelada com sucesso'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Erro ao cancelar venda no PDV', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id(),
+                'request' => $request->all()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao cancelar venda: ' . $e->getMessage()
+            ], 500);
         }
-        return redirect()->route('pdv.full');
     }
 
     public function receipt($saleId)

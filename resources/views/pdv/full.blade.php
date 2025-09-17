@@ -183,10 +183,10 @@
                 <span>Consultar Preço</span>
               </button>
               
-              <button onclick="limparCarrinho()" 
+              <button onclick="cancelarVenda()" 
                       class="bg-red-500 hover:bg-red-600 text-white py-2 px-3 rounded-lg font-semibold text-xs shadow-lg transition-all duration-200 hover:shadow-xl flex items-center justify-center space-x-1">
-                <i class="fas fa-trash-alt text-sm"></i>
-                <span>Limpar Carrinho</span>
+                <i class="fas fa-times-circle text-sm"></i>
+                <span>Cancelar Venda</span>
               </button>
               <!-- Botão Gerador Teste Boletos -->
               <!-- <button onclick="document.getElementById('modalTesteBoleto').showModal()" 
@@ -366,6 +366,46 @@
         <button type="button" onclick="this.closest('dialog').close()" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-8 py-3 rounded-lg font-semibold text-base">
           Fechar
         </button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Modal de Cancelamento de Venda -->
+  <dialog id="modalCancelarVenda">
+    <div class="bg-white rounded-xl shadow-2xl p-6 sm:p-8 w-full">
+      <div class="text-center mb-6">
+        <i class="fas fa-exclamation-triangle text-3xl sm:text-4xl text-red-500 mb-4"></i>
+        <h2 class="text-xl sm:text-2xl font-bold text-red-600 mb-2">Cancelar Venda</h2>
+        <p class="text-sm sm:text-base text-gray-600">Esta ação irá cancelar a venda atual e não pode ser desfeita</p>
+      </div>
+      
+      <div class="space-y-4">
+        <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div class="flex items-center space-x-3">
+            <i class="fas fa-info-circle text-red-500"></i>
+            <div>
+              <p class="font-semibold text-red-800">Atenção!</p>
+              <p class="text-red-600 text-sm">Se a venda já foi finalizada, o estoque será revertido automaticamente.</p>
+            </div>
+          </div>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Motivo do cancelamento (opcional):</label>
+          <textarea id="motivoCancelamento" rows="3" placeholder="Ex: Cliente desistiu, erro no pedido..." 
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"></textarea>
+        </div>
+        
+        <div class="flex flex-col sm:flex-row gap-3 justify-end">
+          <button onclick="document.getElementById('modalCancelarVenda').close()" 
+                  class="w-full sm:w-auto px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-semibold">
+            <i class="fas fa-times mr-2"></i>Não Cancelar
+          </button>
+          <button onclick="confirmarCancelamento()" 
+                  class="w-full sm:w-auto px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold">
+            <i class="fas fa-check mr-2"></i>Confirmar Cancelamento
+          </button>
+        </div>
       </div>
     </div>
   </dialog>
@@ -1075,16 +1115,91 @@
       };
     }
 
-    // Limpar carrinho
-    function limparCarrinho() {
-      if (confirm('Tem certeza que deseja limpar o carrinho?')) {
-        carrinho = [];
-        totalDesconto = 0;
-        window.descontoTipo = 'value';
-        window.descontoValor = 0;
-        pagamentos = [];
-        atualizarCarrinho();
-      }
+    // Cancelar venda
+    function cancelarVenda() {
+      document.getElementById('modalCancelarVenda').showModal();
+    }
+
+    // Confirmar cancelamento de venda
+    function confirmarCancelamento() {
+      const motivo = document.getElementById('motivoCancelamento').value;
+      
+      // Fechar modal
+      document.getElementById('modalCancelarVenda').close();
+      
+      // Mostrar loading
+      const loadingToast = mostrarToast('Cancelando venda...', 'info');
+      
+      // Fazer requisição para cancelar venda
+      fetch('{{ route("pdv.cancelSale") }}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({
+          reason: motivo
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        loadingToast.remove();
+        
+        if (data.success) {
+          // Limpar carrinho local
+          carrinho = [];
+          totalDesconto = 0;
+          window.descontoTipo = 'value';
+          window.descontoValor = 0;
+          pagamentos = [];
+          atualizarCarrinho();
+          
+          // Limpar motivo
+          document.getElementById('motivoCancelamento').value = '';
+          
+          mostrarToast(data.message, 'success');
+          
+          // Recarregar página após 2 segundos
+          setTimeout(() => {
+            window.location.reload();
+          }, 2000);
+        } else {
+          mostrarToast(data.message || 'Erro ao cancelar venda', 'error');
+        }
+      })
+      .catch(error => {
+        loadingToast.remove();
+        console.error('Erro:', error);
+        mostrarToast('Erro ao cancelar venda', 'error');
+      });
+    }
+
+    // Função para mostrar toast
+    function mostrarToast(mensagem, tipo = 'info') {
+      const toast = document.createElement('div');
+      const cores = {
+        success: 'bg-green-500',
+        error: 'bg-red-500',
+        warning: 'bg-yellow-500',
+        info: 'bg-blue-500'
+      };
+      
+      toast.className = `fixed top-4 right-4 ${cores[tipo]} text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-all duration-300`;
+      toast.innerHTML = `
+        <div class="flex items-center space-x-2">
+          <i class="fas fa-${tipo === 'success' ? 'check' : tipo === 'error' ? 'times' : tipo === 'warning' ? 'exclamation' : 'info'}-circle"></i>
+          <span>${mensagem}</span>
+        </div>
+      `;
+      
+      document.body.appendChild(toast);
+      
+      // Auto remover após 5 segundos
+      setTimeout(() => {
+        toast.remove();
+      }, 5000);
+      
+      return toast;
     }
 
     // Finalizar venda
