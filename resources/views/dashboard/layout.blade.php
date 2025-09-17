@@ -142,7 +142,7 @@
                 </a>
                 @endcan
                 @can('view-reports')
-                <a href="/reports" class="flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition {{ request()->routeIs('reports.*') ? 'bg-gray-100 text-gray-900 font-bold' : 'text-gray-700 hover:bg-gray-100' }}">
+                <a href="/stock-control-reports" class="flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition {{ request()->routeIs('stock-control-reports.*') ? 'bg-gray-100 text-gray-900 font-bold' : 'text-gray-700 hover:bg-gray-100' }}">
                     <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 17v-2a4 4 0 014-4h10a4 4 0 014 4v2M16 3.13a4 4 0 010 7.75M8 3.13a4 4 0 000 7.75"/></svg>
                     Relatórios de Estoque
                 </a>
@@ -150,10 +150,6 @@
                 <a href="/sales-reports" class="flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition {{ request()->routeIs('sales-reports.*') ? 'bg-gray-100 text-gray-900 font-bold' : 'text-gray-700 hover:bg-gray-100' }}">
                     <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/></svg>
                     Relatório de Vendas
-                </a>
-                <a href="/stock-control-reports" class="flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition {{ request()->routeIs('stock-control-reports.*') ? 'bg-gray-100 text-gray-900 font-bold' : 'text-gray-700 hover:bg-gray-100' }}">
-                    <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V7a2 2 0 00-2-2H6a2 2 0 00-2 2v6m16 0v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6m16 0H4"/></svg>
-                    Controle de Estoque
                 </a>
                 @can('manage-roles')
                 <a href="/roles" class="flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition {{ request()->routeIs('roles.*') ? 'bg-gray-100 text-gray-900 font-bold' : 'text-gray-700 hover:bg-gray-100' }}">
