@@ -33,12 +33,14 @@ class SalesReportController extends Controller
     {
         $request->validate([
             'user_email' => 'required|email',
-            'period' => 'required|in:week,month,year',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
             'format' => 'in:html,pdf'
         ]);
 
         $userEmail = $request->user_email;
-        $period = $request->period;
+        $startDate = Carbon::parse($request->start_date)->startOfDay();
+        $endDate = Carbon::parse($request->end_date)->endOfDay();
         $format = $request->format ?? 'html';
 
         // Buscar usuário pelo email
@@ -49,7 +51,11 @@ class SalesReportController extends Controller
         }
 
         // Definir períodos
-        $periods = $this->getPeriods($period);
+        $periods = [
+            'start' => $startDate,
+            'end' => $endDate,
+            'label' => 'Período: ' . $startDate->format('d/m/Y') . ' - ' . $endDate->format('d/m/Y')
+        ];
         
         // Buscar dados de vendas
         $salesData = $this->getSalesData($user, $periods);
@@ -59,7 +65,6 @@ class SalesReportController extends Controller
 
         $data = [
             'user' => $user,
-            'period' => $period,
             'periods' => $periods,
             'salesData' => $salesData,
             'salesByCustomer' => $salesByCustomer,
@@ -80,7 +85,17 @@ class SalesReportController extends Controller
      */
     public function guabinorteReport(Request $request)
     {
-        $request->merge(['user_email' => 'guabinorte1@gmail.com']);
+        // Se não foram fornecidas datas, usar período padrão (últimos 30 dias)
+        if (!$request->has('start_date') || !$request->has('end_date')) {
+            $request->merge([
+                'user_email' => 'guabinorte1@gmail.com',
+                'start_date' => Carbon::now()->subDays(30)->format('Y-m-d'),
+                'end_date' => Carbon::now()->format('Y-m-d')
+            ]);
+        } else {
+            $request->merge(['user_email' => 'guabinorte1@gmail.com']);
+        }
+        
         return $this->userSalesReport($request);
     }
 
@@ -184,7 +199,9 @@ class SalesReportController extends Controller
         $pdf = Pdf::loadView('sales_reports.pdf.user_report', $data);
         $pdf->setPaper('A4', 'portrait');
         
-        $filename = 'relatorio_vendas_' . $data['user']->email . '_' . $data['period'] . '_' . now()->format('Y-m-d') . '.pdf';
+        $startDate = $data['periods']['start']->format('Y-m-d');
+        $endDate = $data['periods']['end']->format('Y-m-d');
+        $filename = 'relatorio_vendas_' . $data['user']->email . '_' . $startDate . '_' . $endDate . '.pdf';
         
         return $pdf->download($filename);
     }
@@ -196,7 +213,8 @@ class SalesReportController extends Controller
     {
         $request->validate([
             'user_email' => 'required|email',
-            'period' => 'required|in:week,month,year'
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date'
         ]);
 
         $user = User::where('email', $request->user_email)->first();
@@ -205,7 +223,15 @@ class SalesReportController extends Controller
             return response()->json(['error' => 'Usuário não encontrado'], 404);
         }
 
-        $periods = $this->getPeriods($request->period);
+        $startDate = Carbon::parse($request->start_date)->startOfDay();
+        $endDate = Carbon::parse($request->end_date)->endOfDay();
+        
+        $periods = [
+            'start' => $startDate,
+            'end' => $endDate,
+            'label' => 'Período: ' . $startDate->format('d/m/Y') . ' - ' . $endDate->format('d/m/Y')
+        ];
+        
         $salesData = $this->getSalesData($user, $periods);
         $salesByCustomer = $this->getSalesByCustomer($user, $periods);
 
