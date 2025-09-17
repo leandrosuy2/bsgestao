@@ -79,6 +79,50 @@ class StockControlReportController extends Controller
     }
 
     /**
+     * Gera PDF via GET (para links diretos)
+     */
+    public function generatePdfGet(Request $request)
+    {
+        $request->validate([
+            'category_id' => 'nullable|exists:categories,id',
+            'show_zero_stock' => 'boolean',
+            'format' => 'in:html,pdf'
+        ]);
+
+        $user = Auth::user();
+        $categoryId = $request->category_id;
+        $showZeroStock = $request->show_zero_stock ?? false;
+        $format = $request->format ?? 'pdf';
+
+        // Buscar produtos da empresa
+        $query = Product::where('company_id', $user->company_id)
+                       ->with('category');
+
+        if ($categoryId) {
+            $query->where('category_id', $categoryId);
+        }
+
+        $products = $query->orderBy('name')->get();
+
+        // Calcular estoque físico vs virtual para cada produto
+        $stockData = $this->calculateStockData($products, $showZeroStock);
+
+        // Estatísticas gerais
+        $stats = $this->calculateStats($stockData);
+
+        $data = [
+            'user' => $user,
+            'products' => $stockData,
+            'stats' => $stats,
+            'category' => $categoryId ? Category::find($categoryId) : null,
+            'showZeroStock' => $showZeroStock,
+            'generatedAt' => now()
+        ];
+
+        return $this->generatePdf($data);
+    }
+
+    /**
      * Gera relatório específico para guabinorte1@gmail.com
      */
     public function guabinorteReport(Request $request)

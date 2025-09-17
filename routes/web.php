@@ -238,6 +238,7 @@ Route::middleware(['auth', 'company.access'])->group(function () {
     Route::prefix('stock-control-reports')->group(function () {
         Route::get('/', [StockControlReportController::class, 'index'])->name('stock-control-reports.index');
         Route::post('/generate', [StockControlReportController::class, 'generateReport'])->name('stock-control-reports.generate');
+        Route::get('/generate-pdf', [StockControlReportController::class, 'generatePdfGet'])->name('stock-control-reports.generate-pdf');
         Route::get('/guabinorte', [StockControlReportController::class, 'guabinorteReport'])->name('stock-control-reports.guabinorte');
         Route::get('/api/data', [StockControlReportController::class, 'getStockDataApi'])->name('stock-control-reports.api.data');
     });
