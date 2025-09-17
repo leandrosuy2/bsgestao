@@ -210,7 +210,12 @@
             
             <div class="info-group">
                 <h4>👤 Cliente</h4>
-                @if($sale->customer)
+                @if($deliveryReceipt->customer_name && $deliveryReceipt->customer_name !== 'Cliente não informado')
+                    <p><strong>Nome:</strong> {{ $deliveryReceipt->customer_name }}</p>
+                    <p><strong>CPF/CNPJ:</strong> {{ $deliveryReceipt->customer_cpf_cnpj ?: 'Não informado' }}</p>
+                    <p><strong>Telefone:</strong> {{ $deliveryReceipt->customer_phone ?: 'Não informado' }}</p>
+                    <p><strong>Email:</strong> {{ $deliveryReceipt->customer_email ?: 'Não informado' }}</p>
+                @elseif($sale->customer)
                     <p><strong>Nome:</strong> {{ $sale->customer->name }}</p>
                     <p><strong>CPF/CNPJ:</strong> {{ $sale->customer->cpf_cnpj ?? 'Não informado' }}</p>
                     <p><strong>Telefone:</strong> {{ $sale->customer->phone ?? 'Não informado' }}</p>
@@ -221,6 +226,27 @@
                 <p><strong>Vendedor:</strong> {{ $sale->user->name }}</p>
             </div>
         </div>
+
+        <!-- Endereço de Entrega -->
+        @if($deliveryReceipt->delivery_address || $deliveryReceipt->delivery_city)
+        <div class="info-section">
+            <div class="info-group">
+                <h4>📍 Endereço de Entrega</h4>
+                @if($deliveryReceipt->delivery_address)
+                    <p><strong>Endereço:</strong> {{ $deliveryReceipt->delivery_address }}</p>
+                @endif
+                @if($deliveryReceipt->delivery_city)
+                    <p><strong>Cidade:</strong> {{ $deliveryReceipt->delivery_city }}</p>
+                @endif
+                @if($deliveryReceipt->delivery_state)
+                    <p><strong>Estado:</strong> {{ $deliveryReceipt->delivery_state }}</p>
+                @endif
+                @if($deliveryReceipt->delivery_zipcode)
+                    <p><strong>CEP:</strong> {{ $deliveryReceipt->delivery_zipcode }}</p>
+                @endif
+            </div>
+        </div>
+        @endif
 
         <!-- Itens -->
         <div class="items-section">
@@ -241,11 +267,22 @@
                     @foreach($deliveryReceipt->items as $index => $item)
                         <tr>
                             <td class="center">{{ $index + 1 }}</td>
-                            <td class="item-nome">{{ $item->product_name }}</td>
+                            <td class="item-nome">
+                                {{ $item->product_name }}
+                                @if($item->unit_price > 0)
+                                    <br><small>R$ {{ number_format($item->unit_price, 2, ',', '.') }} cada</small>
+                                @endif
+                            </td>
                             <td class="center">{{ $item->quantity_expected }}</td>
                             <td class="center">{{ $item->quantity_received }}</td>
                             <td class="right">R$ {{ number_format($item->unit_price, 2, ',', '.') }}</td>
-                            <td class="right">R$ {{ number_format($item->total_price, 2, ',', '.') }}</td>
+                            <td class="right">
+                                @if($item->total_price > 0)
+                                    R$ {{ number_format($item->total_price, 2, ',', '.') }}
+                                @else
+                                    -
+                                @endif
+                            </td>
                             <td class="center">
                                 <span style="color: {{ $item->checked ? '#28a745' : '#6c757d' }} !important; font-weight: bold; font-size: 16px; text-shadow: 1px 1px 2px rgba(0,0,0,0.3);">
                                     {{ $item->checked ? '✓' : '☐' }}
@@ -279,11 +316,17 @@
                 <div class="summary-title">💰 Valores da Venda</div>
                 <div class="summary-item">
                     <span>Subtotal:</span>
-                    <span>R$ {{ number_format($sale->total, 2, ',', '.') }}</span>
+                    <span>R$ {{ number_format($sale->items->sum('total_price'), 2, ',', '.') }}</span>
                 </div>
+                @if($sale->items->sum('discount_amount') > 0)
+                <div class="summary-item">
+                    <span>Desconto Produtos:</span>
+                    <span>R$ {{ number_format($sale->items->sum('discount_amount'), 2, ',', '.') }}</span>
+                </div>
+                @endif
                 @if($sale->discount > 0)
                 <div class="summary-item">
-                    <span>Desconto:</span>
+                    <span>Desconto Geral:</span>
                     <span>R$ {{ number_format($sale->discount, 2, ',', '.') }}</span>
                 </div>
                 @endif

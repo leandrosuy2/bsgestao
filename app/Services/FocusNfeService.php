@@ -426,6 +426,9 @@ class FocusNfeService
             'icms_valor_st' => 0,
             'valor_aproximado_total_tributos' => (float)$nfe->valor_total * 0.40, // Estimativa 40% (obrigatório)
             
+            // Observações
+            'informacoes_adicionais' => $nfe->observacoes ?: null,
+            
             'items' => []
         ]);
         if ((int)$nfe->finalidade_emissao === 4) { // Devolução

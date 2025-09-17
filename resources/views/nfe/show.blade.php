@@ -61,6 +61,10 @@
                 <button onclick="abrirModalCancelar24h({{ $nfe->id }})" class="bg-red-500 hover:bg-red-700 text-white px-4 py-2 rounded-lg">
                     <i class="fas fa-times mr-1"></i> Cancelar NFE (24h)
                 </button>
+                @elseif(in_array($nfe->status, ['emitida', 'autorizado']) && $nfe->status !== 'cancelado')
+                <button onclick="abrirModalCancelar({{ $nfe->id }})" class="bg-red-600 hover:bg-red-800 text-white px-4 py-2 rounded-lg">
+                    <i class="fas fa-ban mr-1"></i> Cancelar NFE
+                </button>
                 @endif
                 
                 <button onclick="abrirModalDevolucao({{ $nfe->id }})" class="bg-yellow-500 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg">
@@ -189,6 +193,34 @@
                     <div class="md:col-span-2">
                         <p class="font-medium text-orange-700">Mensagem SEFAZ:</p>
                         <p class="text-orange-600">{{ $nfe->mensagem_devolucao_sefaz }}</p>
+                    </div>
+                    @endif
+                </div>
+            </div>
+        @endif
+
+        @if($nfe->status === 'cancelado' && $nfe->justificativa_cancelamento)
+            <div class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <h3 class="font-medium text-red-800 mb-2">Informações do Cancelamento</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <p class="font-medium text-red-700">Data do Cancelamento:</p>
+                        <p class="text-red-600">{{ $nfe->data_cancelamento ? $nfe->data_cancelamento->format('d/m/Y H:i') : $nfe->updated_at->format('d/m/Y H:i') }}</p>
+                    </div>
+                    @if($nfe->protocolo_cancelamento)
+                    <div>
+                        <p class="font-medium text-red-700">Protocolo:</p>
+                        <p class="text-red-600">{{ $nfe->protocolo_cancelamento }}</p>
+                    </div>
+                    @endif
+                    <div class="md:col-span-2">
+                        <p class="font-medium text-red-700">Justificativa:</p>
+                        <p class="text-red-600">{{ $nfe->justificativa_cancelamento }}</p>
+                    </div>
+                    @if($nfe->mensagem_cancelamento_sefaz)
+                    <div class="md:col-span-2">
+                        <p class="font-medium text-red-700">Mensagem SEFAZ:</p>
+                        <p class="text-red-600">{{ $nfe->mensagem_cancelamento_sefaz }}</p>
                     </div>
                     @endif
                 </div>
@@ -508,6 +540,51 @@ function reenviarNfe(id) {
     </div>
 </div>
 
+<!-- Modal Cancelar Normal -->
+<div id="modalCancelar" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50 transition-opacity duration-300">
+    <div class="relative min-h-screen flex items-center justify-center px-4">
+        <div class="relative bg-white rounded-lg shadow-xl max-w-lg w-full transform transition-transform duration-300 scale-95" id="modalCancelarContent">
+            <div class="p-6">
+                <div class="flex items-center justify-center w-16 h-16 mx-auto bg-red-100 rounded-full">
+                    <i class="fas fa-ban text-red-600 text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-semibold text-gray-900 mt-4 text-center">Cancelar NFe</h3>
+                <div class="mt-6 space-y-4">
+                    <div class="bg-red-50 p-3 rounded-md">
+                        <p class="text-sm text-red-800">
+                            ⚠️ <strong>Atenção:</strong> Esta ação não pode ser desfeita. A NFe será cancelada definitivamente.
+                        </p>
+                    </div>
+                    
+                    <div>
+                        <label for="justificativaCancelamento" class="block text-sm font-medium text-gray-700 mb-2">
+                            Justificativa do Cancelamento *
+                        </label>
+                        <textarea id="justificativaCancelamento" rows="4" placeholder="Descreva o motivo do cancelamento da NFe..." 
+                            class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none" required></textarea>
+                        <p class="text-xs text-gray-500 mt-1">Mínimo de 15 caracteres</p>
+                    </div>
+                    
+                    <div class="bg-yellow-50 p-3 rounded-md">
+                        <p class="text-sm text-yellow-800">
+                            💡 <strong>Importante:</strong> O cancelamento será processado na SEFAZ e a NFe terá seu status alterado para "cancelada".
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center justify-center gap-3 mt-6">
+                    <button onclick="fecharModalCancelar()" class="px-6 py-2 bg-gray-300 text-gray-700 font-medium rounded-md hover:bg-gray-400 transition-colors">
+                        Cancelar
+                    </button>
+                    <button onclick="confirmarCancelamento()" class="px-6 py-2 bg-red-600 text-white font-medium rounded-md hover:bg-red-700 transition-colors">
+                        <i class="fas fa-ban mr-2"></i>
+                        Confirmar Cancelamento
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 let nfeIdParaAcao = null;
 
@@ -621,13 +698,75 @@ function confirmarDevolucao() {
     }
 }
 
+// Funções Modal Cancelar Normal
+function abrirModalCancelar(nfeId) {
+    nfeIdParaAcao = nfeId;
+    const modal = document.getElementById('modalCancelar');
+    const content = document.getElementById('modalCancelarContent');
+    
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        content.classList.remove('scale-95');
+        content.classList.add('scale-100');
+    }, 10);
+}
+
+function fecharModalCancelar() {
+    const modal = document.getElementById('modalCancelar');
+    const content = document.getElementById('modalCancelarContent');
+    
+    content.classList.remove('scale-100');
+    content.classList.add('scale-95');
+    
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
+    
+    document.getElementById('justificativaCancelamento').value = '';
+    nfeIdParaAcao = null;
+}
+
+function confirmarCancelamento() {
+    const justificativa = document.getElementById('justificativaCancelamento').value;
+    
+    if (!justificativa || justificativa.length < 15) {
+        alert('Por favor, informe uma justificativa com pelo menos 15 caracteres.');
+        return;
+    }
+    
+    if (nfeIdParaAcao) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/nfe/${nfeIdParaAcao}/cancelar`;
+        
+        const csrfToken = document.createElement('input');
+        csrfToken.type = 'hidden';
+        csrfToken.name = '_token';
+        csrfToken.value = '{{ csrf_token() }}';
+        form.appendChild(csrfToken);
+        
+        const justificativaInput = document.createElement('input');
+        justificativaInput.type = 'hidden';
+        justificativaInput.name = 'justificativa';
+        justificativaInput.value = justificativa;
+        form.appendChild(justificativaInput);
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
 // Fechar modais clicando fora
 window.onclick = function(event) {
-    const modalCancelar = document.getElementById('modalCancelar24h');
+    const modalCancelar24h = document.getElementById('modalCancelar24h');
+    const modalCancelar = document.getElementById('modalCancelar');
     const modalDevolucao = document.getElementById('modalDevolucao');
     
-    if (event.target === modalCancelar) {
+    if (event.target === modalCancelar24h) {
         fecharModalCancelar24h();
+    }
+    if (event.target === modalCancelar) {
+        fecharModalCancelar();
     }
     if (event.target === modalDevolucao) {
         fecharModalDevolucao();

@@ -89,16 +89,17 @@ class PDVController extends Controller
         $product = Product::forCurrentCompany()->findOrFail($request->product_id);
 
         $totalPrice = $product->sale_price * $request->quantity;
-        SaleItem::create([
+        $saleItem = SaleItem::create([
             'sale_id' => $sale->id,
             'product_id' => $product->id,
+            'product_name' => $product->name,
             'quantity' => $request->quantity,
             'unit_price' => $product->sale_price,
             'total_price' => $totalPrice,
+            'final_price' => $totalPrice, // Inicialmente igual ao total_price
         ]);
-        $sale->total += $totalPrice;
-        $sale->final_total = $sale->total - $sale->discount;
-        $sale->save();
+        
+        $this->recalculateSaleTotals($sale);
         return redirect('/pdv/full');
     }
 
@@ -110,11 +111,87 @@ class PDVController extends Controller
         })->findOrFail($itemId);
 
         $sale = $item->sale;
-        $sale->total -= $item->total_price;
-        $sale->final_total = $sale->total - $sale->discount;
-        $sale->save();
         $item->delete();
+        $this->recalculateSaleTotals($sale);
         return redirect()->route('pdv.index');
+    }
+
+    /**
+     * Aplicar desconto em um produto específico
+     */
+    public function applyItemDiscount(Request $request, $itemId)
+    {
+        $request->validate([
+            'discount_value' => 'required|numeric|min:0',
+            'discount_type' => 'required|in:amount,percentage',
+        ]);
+
+        $item = SaleItem::whereHas('sale', function($query) {
+            $query->where('user_id', Auth::id());
+        })->findOrFail($itemId);
+
+        $sale = $item->sale;
+
+        // Aplicar desconto no item
+        $item->applyDiscount($request->discount_value, $request->discount_type);
+        $item->save();
+
+        // Recalcular totais da venda
+        $this->recalculateSaleTotals($sale);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Desconto aplicado com sucesso!',
+            'item' => [
+                'id' => $item->id,
+                'discount_amount' => $item->discount_amount,
+                'discount_percentage' => $item->discount_percentage,
+                'final_price' => $item->final_price,
+                'formatted_discount' => $item->formatted_discount,
+            ]
+        ]);
+    }
+
+    /**
+     * Remover desconto de um produto específico
+     */
+    public function removeItemDiscount($itemId)
+    {
+        $item = SaleItem::whereHas('sale', function($query) {
+            $query->where('user_id', Auth::id());
+        })->findOrFail($itemId);
+
+        $sale = $item->sale;
+
+        // Remover desconto do item
+        $item->removeDiscount();
+        $item->save();
+
+        // Recalcular totais da venda
+        $this->recalculateSaleTotals($sale);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Desconto removido com sucesso!',
+            'item' => [
+                'id' => $item->id,
+                'final_price' => $item->final_price,
+            ]
+        ]);
+    }
+
+    /**
+     * Recalcular totais da venda baseado nos itens
+     */
+    private function recalculateSaleTotals(Sale $sale)
+    {
+        // Recalcular total baseado nos preços finais dos itens
+        $total = $sale->items()->sum('final_price');
+        
+        $sale->update([
+            'total' => $total,
+            'final_total' => $total - $sale->discount,
+        ]);
     }
 
     public function applyDiscount(Request $request)
@@ -351,8 +428,8 @@ class PDVController extends Controller
                     }
                 }
 
-                // Calcular totais
-                $total = $sale->items()->sum('total_price');
+                // Calcular totais baseado nos preços finais dos itens
+                $total = $sale->items()->sum('final_price');
                 
                 // Calcular desconto - ajustado para lidar com descontos em valor real
                 $desconto = $request->desconto ?? 0;
@@ -576,14 +653,36 @@ class PDVController extends Controller
             // Gerar número único do romaneio
             $receiptNumber = 'ROM-' . date('Ymd') . '-' . str_pad($sale->id, 4, '0', STR_PAD_LEFT);
 
-            // Buscar informações do cliente se existir
+            // Buscar informações completas do cliente se existir
             $customerName = 'Cliente não informado';
             $customerContact = '';
+            $customerCpfCnpj = '';
+            $customerPhone = '';
+            $customerEmail = '';
+            $deliveryAddress = '';
+            $deliveryCity = '';
+            $deliveryState = '';
+            $deliveryZipcode = '';
+            
             if ($sale->customer_id) {
                 $customer = Customer::find($sale->customer_id);
                 if ($customer) {
                     $customerName = $customer->name;
                     $customerContact = $customer->phone ?? $customer->email ?? '';
+                    $customerCpfCnpj = $customer->cpf_cnpj ?? '';
+                    $customerPhone = $customer->phone ?? '';
+                    $customerEmail = $customer->email ?? '';
+                    
+                    // Montar endereço completo
+                    $addressParts = [];
+                    if ($customer->address) $addressParts[] = $customer->address;
+                    if ($customer->number) $addressParts[] = $customer->number;
+                    if ($customer->neighborhood) $addressParts[] = $customer->neighborhood;
+                    $deliveryAddress = implode(', ', $addressParts);
+                    
+                    $deliveryCity = $customer->city ?? '';
+                    $deliveryState = $customer->state ?? '';
+                    $deliveryZipcode = $customer->zipcode ?? '';
                 }
             }
 
@@ -637,9 +736,18 @@ class PDVController extends Controller
                 'company_id' => $sale->company_id,
                 'user_id' => $sale->user_id,
                 'sale_id' => $sale->id,
+                'customer_id' => $sale->customer_id,
+                'customer_name' => $customerName,
+                'customer_cpf_cnpj' => $customerCpfCnpj,
+                'customer_phone' => $customerPhone,
+                'customer_email' => $customerEmail,
+                'delivery_address' => $deliveryAddress,
+                'delivery_city' => $deliveryCity,
+                'delivery_state' => $deliveryState,
+                'delivery_zipcode' => $deliveryZipcode,
                 'receipt_number' => $receiptNumber,
                 'supplier_name' => $customerName,
-                'supplier_cnpj' => '',
+                'supplier_cnpj' => $customerCpfCnpj,
                 'supplier_contact' => $customerContact,
                 'delivery_date' => now(), // Inclui data e hora atual
                 'status' => 'pending',

@@ -81,12 +81,39 @@
     <div class="info-section">
         <p><strong>Número:</strong> {{ $deliveryReceipt->receipt_number }}</p>
         <p><strong>Data:</strong> {{ $deliveryReceipt->delivery_date ? $deliveryReceipt->delivery_date->format('d/m/Y') : '' }}</p>
-        <p><strong>Fornecedor:</strong> {{ $deliveryReceipt->supplier_name }}</p>
-        <p><strong>CNPJ:</strong> {{ $deliveryReceipt->supplier_cnpj }}</p>
-        @if($deliveryReceipt->supplier_contact)
+        <p><strong>Cliente:</strong> {{ $deliveryReceipt->customer_name ?: $deliveryReceipt->supplier_name }}</p>
+        @if($deliveryReceipt->customer_cpf_cnpj)
+            <p><strong>CPF/CNPJ:</strong> {{ $deliveryReceipt->customer_cpf_cnpj }}</p>
+        @elseif($deliveryReceipt->supplier_cnpj)
+            <p><strong>CNPJ:</strong> {{ $deliveryReceipt->supplier_cnpj }}</p>
+        @endif
+        @if($deliveryReceipt->customer_phone)
+            <p><strong>Telefone:</strong> {{ $deliveryReceipt->customer_phone }}</p>
+        @elseif($deliveryReceipt->supplier_contact)
             <p><strong>Contato:</strong> {{ $deliveryReceipt->supplier_contact }}</p>
         @endif
+        @if($deliveryReceipt->customer_email)
+            <p><strong>Email:</strong> {{ $deliveryReceipt->customer_email }}</p>
+        @endif
     </div>
+
+    @if($deliveryReceipt->delivery_address || $deliveryReceipt->delivery_city)
+    <div class="info-section">
+        <h3>Endereço de Entrega:</h3>
+        @if($deliveryReceipt->delivery_address)
+            <p><strong>Endereço:</strong> {{ $deliveryReceipt->delivery_address }}</p>
+        @endif
+        @if($deliveryReceipt->delivery_city)
+            <p><strong>Cidade:</strong> {{ $deliveryReceipt->delivery_city }}</p>
+        @endif
+        @if($deliveryReceipt->delivery_state)
+            <p><strong>Estado:</strong> {{ $deliveryReceipt->delivery_state }}</p>
+        @endif
+        @if($deliveryReceipt->delivery_zipcode)
+            <p><strong>CEP:</strong> {{ $deliveryReceipt->delivery_zipcode }}</p>
+        @endif
+    </div>
+    @endif
 
     <table class="table">
         <thead>

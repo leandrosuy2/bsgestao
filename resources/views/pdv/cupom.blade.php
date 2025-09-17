@@ -154,9 +154,24 @@
                         {{ $item->product_name ?? ($item->product->name ?? 'Produto') }}
                         <br>
                         <small>{{ $item->quantity }}x R$ {{ number_format($item->unit_price, 2, ',', '.') }}</small>
+                        @if($item->has_discount)
+                            <br>
+                            <small style="color: #dc3545;">
+                                Desconto: {{ $item->formatted_discount }}
+                            </small>
+                        @endif
                     </div>
                     <div class="item-valor">
-                        R$ {{ number_format($item->total_price, 2, ',', '.') }}
+                        @if($item->has_discount)
+                            <div style="text-decoration: line-through; color: #666; font-size: 10px;">
+                                R$ {{ number_format($item->total_price, 2, ',', '.') }}
+                            </div>
+                            <div style="color: #dc3545; font-weight: bold;">
+                                R$ {{ number_format($item->final_price, 2, ',', '.') }}
+                            </div>
+                        @else
+                            R$ {{ number_format($item->final_price, 2, ',', '.') }}
+                        @endif
                     </div>
                 </div>
             @endforeach
@@ -167,11 +182,17 @@
         <div class="total">
             <div class="item">
                 <span>SUBTOTAL:</span>
-                <span>R$ {{ number_format($sale->total, 2, ',', '.') }}</span>
+                <span>R$ {{ number_format($sale->items->sum('total_price'), 2, ',', '.') }}</span>
             </div>
+            @if($sale->items->sum('discount_amount') > 0)
+                <div class="item">
+                    <span>DESCONTO PRODUTOS:</span>
+                    <span>R$ {{ number_format($sale->items->sum('discount_amount'), 2, ',', '.') }}</span>
+                </div>
+            @endif
             @if($sale->discount > 0)
                 <div class="item">
-                    <span>DESCONTO:</span>
+                    <span>DESCONTO GERAL:</span>
                     <span>R$ {{ number_format($sale->discount, 2, ',', '.') }}</span>
                 </div>
             @endif

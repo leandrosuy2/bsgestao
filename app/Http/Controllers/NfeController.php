@@ -83,6 +83,10 @@ class NfeController extends Controller
 
             if ($cancelamentoOK) {
                 $nfe->status = 'cancelado';
+                $nfe->justificativa_cancelamento = 'Cancelamento dentro de 24h';
+                $nfe->data_cancelamento = now();
+                $nfe->protocolo_cancelamento = $resultado['protocolo'] ?? null;
+                $nfe->mensagem_cancelamento_sefaz = $resultado['mensagem'] ?? $resultado['mensagem_sefaz'] ?? 'Cancelamento processado com sucesso';
                 $nfe->save();
                 
                 \Log::info('NFe cancelada via 24h - status atualizado', [
@@ -438,6 +442,9 @@ class NfeController extends Controller
             $nfe->valor_outras_despesas = $request->valor_outras_despesas ?? 0;
             $nfe->valor_total = 0; // Será recalculado após adicionar os itens
             
+            // Observações
+            $nfe->observacoes = $request->observacoes ?? null;
+            
             $nfe->save();
             
             // Criar itens
@@ -654,6 +661,9 @@ class NfeController extends Controller
             // Calcular local_destino baseado na UF
             $empresa = Auth::user()->company;
             $nfe->local_destino = ($nfe->uf_destinatario === $empresa->uf) ? 1 : 2;
+            
+            // Observações
+            $nfe->observacoes = $request->observacoes ?? null;
             
             $nfe->save();
 
@@ -878,6 +888,9 @@ class NfeController extends Controller
             if ($cancelamentoOK) {
                 $nfe->status = 'cancelado';
                 $nfe->justificativa_cancelamento = $request->justificativa;
+                $nfe->data_cancelamento = now();
+                $nfe->protocolo_cancelamento = $response['protocolo'] ?? null;
+                $nfe->mensagem_cancelamento_sefaz = $response['mensagem'] ?? $response['mensagem_sefaz'] ?? 'Cancelamento processado com sucesso';
                 $nfe->save();
 
                 \Log::info('NFe cancelada via modal - status atualizado', [

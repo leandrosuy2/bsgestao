@@ -62,6 +62,12 @@ class Nfe extends Model
         'presenca_comprador',
         'modalidade_frete',
         
+        // Campos de cancelamento
+        'justificativa_cancelamento',
+        'protocolo_cancelamento',
+        'data_cancelamento',
+        'mensagem_cancelamento_sefaz',
+        
         // Campos de devolução
         'data_devolucao',
         'protocolo_devolucao',
@@ -89,6 +95,7 @@ class Nfe extends Model
 
     protected $casts = [
         'data_emissao' => 'datetime',
+        'data_cancelamento' => 'datetime',
         'data_devolucao' => 'datetime',
         'valor_produtos' => 'decimal:2',
         'valor_frete' => 'decimal:2',

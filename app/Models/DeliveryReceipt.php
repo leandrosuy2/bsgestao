@@ -13,6 +13,15 @@ class DeliveryReceipt extends Model
         'company_id',
         'user_id',
         'sale_id',
+        'customer_id',
+        'customer_name',
+        'customer_cpf_cnpj',
+        'customer_phone',
+        'customer_email',
+        'delivery_address',
+        'delivery_city',
+        'delivery_state',
+        'delivery_zipcode',
         'receipt_number',
         'supplier_name',
         'supplier_cnpj',
@@ -63,6 +72,14 @@ class DeliveryReceipt extends Model
     public function sale()
     {
         return $this->belongsTo(Sale::class);
+    }
+
+    /**
+     * Relacionamento com o cliente
+     */
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class);
     }
 
     /**

@@ -35,6 +35,8 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DeliveryReceiptController;
 use App\Http\Controllers\LogReaderController;
 use App\Http\Controllers\NfeController;
+use App\Http\Controllers\SalesReportController;
+use App\Http\Controllers\StockControlReportController;
 
 // Sicredi - Rotas RESTful padronizadas
 Route::prefix('sicredi')->group(function () {
@@ -224,6 +226,22 @@ Route::middleware(['auth', 'company.access'])->group(function () {
 
     Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
 
+    // Relatórios de Vendas por Usuário
+    Route::prefix('sales-reports')->group(function () {
+        Route::get('/', [SalesReportController::class, 'index'])->name('sales-reports.index');
+        Route::post('/user', [SalesReportController::class, 'userSalesReport'])->name('sales-reports.user');
+        Route::get('/guabinorte', [SalesReportController::class, 'guabinorteReport'])->name('sales-reports.guabinorte');
+        Route::get('/api/data', [SalesReportController::class, 'getSalesDataApi'])->name('sales-reports.api.data');
+    });
+
+    // Relatórios de Controle de Estoque
+    Route::prefix('stock-control-reports')->group(function () {
+        Route::get('/', [StockControlReportController::class, 'index'])->name('stock-control-reports.index');
+        Route::post('/generate', [StockControlReportController::class, 'generateReport'])->name('stock-control-reports.generate');
+        Route::get('/guabinorte', [StockControlReportController::class, 'guabinorteReport'])->name('stock-control-reports.guabinorte');
+        Route::get('/api/data', [StockControlReportController::class, 'getStockDataApi'])->name('stock-control-reports.api.data');
+    });
+
     // Rotas para fornecedores
     Route::resource('suppliers', SupplierController::class);
     Route::patch('suppliers/{supplier}/toggle-status', [SupplierController::class, 'toggleStatus'])->name('suppliers.toggle-status');
@@ -405,6 +423,8 @@ Route::prefix('pdv')->middleware(['auth'])->group(function () {
     Route::post('/item', [\App\Http\Controllers\PDVController::class, 'addItem'])->name('pdv.addItem');
     Route::delete('/item/{itemId}', [\App\Http\Controllers\PDVController::class, 'removeItem'])->name('pdv.removeItem');
     Route::post('/desconto', [\App\Http\Controllers\PDVController::class, 'applyDiscount'])->name('pdv.discount');
+    Route::post('/item/{itemId}/desconto', [\App\Http\Controllers\PDVController::class, 'applyItemDiscount'])->name('pdv.itemDiscount');
+    Route::delete('/item/{itemId}/desconto', [\App\Http\Controllers\PDVController::class, 'removeItemDiscount'])->name('pdv.removeItemDiscount');
     Route::post('/pagamento', [\App\Http\Controllers\PDVController::class, 'addPayment'])->name('pdv.addPayment');
     Route::post('/finalizar', [\App\Http\Controllers\PDVController::class, 'finalize'])->name('pdv.finalize');
     Route::get('/venda/{id}/comprovante', [\App\Http\Controllers\PDVController::class, 'receipt'])->name('pdv.receipt');
