@@ -133,36 +133,46 @@ class SalesReportController extends Controller
      */
     private function getSalesData($user, $periods)
     {
-        $query = Sale::where('user_id', $user->id)
-                    ->where('company_id', $user->company_id)
-                    ->where('status', 'completed')
-                    ->whereBetween('sold_at', [$periods['start'], $periods['end']]);
+        // Base query para evitar repetição
+        $baseQuery = Sale::where('user_id', $user->id)
+                        ->where('company_id', $user->company_id)
+                        ->where('status', 'completed')
+                        ->whereBetween('sold_at', [$periods['start'], $periods['end']]);
 
-        $total = $query->sum('final_total');
-        $count = $query->count();
+        // Calcular totais
+        $total = $baseQuery->sum('final_total');
+        $count = $baseQuery->count();
 
         // Vendas por dia no período
-        $salesByDay = Sale::where('user_id', $user->id)
-                         ->where('company_id', $user->company_id)
-                         ->where('status', 'completed')
-                         ->whereBetween('sold_at', [$periods['start'], $periods['end']])
+        $salesByDay = (clone $baseQuery)
                          ->selectRaw('DATE(sold_at) as date, SUM(final_total) as total, COUNT(*) as count')
                          ->groupBy('date')
                          ->orderBy('date')
-                         ->get();
+                         ->get()
+                         ->map(function($item) {
+                             return [
+                                 'date' => $item->date,
+                                 'total' => (float) $item->total,
+                                 'count' => (int) $item->count
+                             ];
+                         });
 
         // Vendas por forma de pagamento
-        $salesByPayment = Sale::where('user_id', $user->id)
-                             ->where('company_id', $user->company_id)
-                             ->where('status', 'completed')
-                             ->whereBetween('sold_at', [$periods['start'], $periods['end']])
+        $salesByPayment = (clone $baseQuery)
                              ->selectRaw('payment_mode, SUM(final_total) as total, COUNT(*) as count')
                              ->groupBy('payment_mode')
-                             ->get();
+                             ->get()
+                             ->map(function($item) {
+                                 return [
+                                     'payment_mode' => $item->payment_mode,
+                                     'total' => (float) $item->total,
+                                     'count' => (int) $item->count
+                                 ];
+                             });
 
         return [
-            'total' => $total,
-            'count' => $count,
+            'total' => (float) $total,
+            'count' => (int) $count,
             'byDay' => $salesByDay,
             'byPayment' => $salesByPayment
         ];
@@ -173,22 +183,31 @@ class SalesReportController extends Controller
      */
     private function getSalesByCustomer($user, $periods)
     {
-        return Sale::where('user_id', $user->id)
+        $salesByCustomer = Sale::where('user_id', $user->id)
                   ->where('company_id', $user->company_id)
                   ->where('status', 'completed')
                   ->whereBetween('sold_at', [$periods['start'], $periods['end']])
-                  ->with('customer')
                   ->selectRaw('customer_id, SUM(final_total) as total, COUNT(*) as count')
                   ->groupBy('customer_id')
                   ->orderByDesc('total')
-                  ->get()
-                  ->map(function ($sale) {
-                      return [
-                          'customer' => $sale->customer ? $sale->customer->name : 'Cliente não informado',
-                          'total' => $sale->total,
-                          'count' => $sale->count
-                      ];
-                  });
+                  ->get();
+
+        // Buscar dados dos clientes separadamente para evitar problemas de relacionamento
+        $customerIds = $salesByCustomer->pluck('customer_id')->filter()->unique();
+        $customers = Customer::whereIn('id', $customerIds)->get()->keyBy('id');
+
+        return $salesByCustomer->map(function ($sale) use ($customers) {
+            $customerName = 'Cliente não informado';
+            if ($sale->customer_id && isset($customers[$sale->customer_id])) {
+                $customerName = $customers[$sale->customer_id]->name;
+            }
+            
+            return [
+                'customer' => $customerName,
+                'total' => (float) $sale->total,
+                'count' => (int) $sale->count
+            ];
+        });
     }
 
     /**

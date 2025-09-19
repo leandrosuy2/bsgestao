@@ -3,6 +3,29 @@
 @section('title', 'Relatório de Vendas - ' . $user->name)
 
 @section('content')
+<style>
+    .chart-container {
+        position: relative;
+        height: 300px;
+        width: 100%;
+        max-width: 100%;
+        overflow: hidden;
+    }
+    
+    .chart-container canvas {
+        max-width: 100% !important;
+        max-height: 300px !important;
+    }
+    
+    /* Prevenir que os gráficos cresçam indefinidamente */
+    #salesByDayChart,
+    #salesByPaymentChart {
+        max-width: 100% !important;
+        max-height: 300px !important;
+        width: 100% !important;
+        height: 300px !important;
+    }
+</style>
 <div class="space-y-6">
     <!-- Cabeçalho do Relatório -->
     <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
@@ -93,7 +116,9 @@
         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Vendas por Dia</h3>
             @if($salesData['byDay']->count() > 0)
-                <canvas id="salesByDayChart" height="300"></canvas>
+                <div class="chart-container">
+                    <canvas id="salesByDayChart"></canvas>
+                </div>
             @else
                 <p class="text-gray-500 text-center py-8">Nenhuma venda registrada no período</p>
             @endif
@@ -103,7 +128,9 @@
         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Vendas por Forma de Pagamento</h3>
             @if($salesData['byPayment']->count() > 0)
-                <canvas id="salesByPaymentChart" height="300"></canvas>
+                <div class="chart-container">
+                    <canvas id="salesByPaymentChart"></canvas>
+                </div>
             @else
                 <p class="text-gray-500 text-center py-8">Nenhuma venda registrada no período</p>
             @endif
@@ -163,9 +190,9 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             @foreach($salesData['byPayment'] as $payment)
                 <div class="p-4 bg-gray-50 rounded-lg">
-                    <h4 class="font-medium text-gray-900 capitalize">{{ $payment->payment_mode }}</h4>
-                    <p class="text-2xl font-bold text-blue-600">R$ {{ number_format($payment->total, 2, ',', '.') }}</p>
-                    <p class="text-sm text-gray-500">{{ $payment->count }} vendas</p>
+                    <h4 class="font-medium text-gray-900 capitalize">{{ $payment['payment_mode'] }}</h4>
+                    <p class="text-2xl font-bold text-blue-600">R$ {{ number_format($payment['total'], 2, ',', '.') }}</p>
+                    <p class="text-sm text-gray-500">{{ $payment['count'] }} vendas</p>
                 </div>
             @endforeach
         </div>
@@ -174,84 +201,93 @@
 </div>
 
 @if($salesData['byDay']->count() > 0 || $salesData['byPayment']->count() > 0)
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script>
-// Gráfico de Vendas por Dia
-@if($salesData['byDay']->count() > 0)
-const salesByDayCtx = document.getElementById('salesByDayChart').getContext('2d');
-new Chart(salesByDayCtx, {
-    type: 'line',
-    data: {
-        labels: @json($salesData['byDay']->pluck('date')->map(function($date) { return \Carbon\Carbon::parse($date)->format('d/m'); })),
-        datasets: [{
-            label: 'Vendas (R$)',
-            data: @json($salesData['byDay']->pluck('total')),
-            borderColor: 'rgb(59, 130, 246)',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            tension: 0.4,
-            fill: true
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                display: false
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    callback: function(value) {
-                        return 'R$ ' + value.toLocaleString('pt-BR');
-                    }
-                }
-            }
-        }
-    }
-});
-@endif
-
-// Gráfico de Vendas por Forma de Pagamento
-@if($salesData['byPayment']->count() > 0)
-const salesByPaymentCtx = document.getElementById('salesByPaymentChart').getContext('2d');
-new Chart(salesByPaymentCtx, {
-    type: 'doughnut',
-    data: {
-        labels: @json($salesData['byPayment']->pluck('payment_mode')->map(function($mode) { return ucfirst($mode); })),
-        datasets: [{
-            data: @json($salesData['byPayment']->pluck('total')),
-            backgroundColor: [
-                'rgba(59, 130, 246, 0.8)',
-                'rgba(16, 185, 129, 0.8)',
-                'rgba(245, 158, 11, 0.8)',
-                'rgba(239, 68, 68, 0.8)',
-                'rgba(139, 92, 246, 0.8)'
-            ],
-            borderWidth: 2,
-            borderColor: '#fff'
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'bottom'
+document.addEventListener('DOMContentLoaded', function() {
+    // Gráfico de Vendas por Dia
+    @if($salesData['byDay']->count() > 0)
+    const salesByDayElement = document.getElementById('salesByDayChart');
+    if (salesByDayElement) {
+        const salesByDayCtx = salesByDayElement.getContext('2d');
+        new Chart(salesByDayCtx, {
+            type: 'line',
+            data: {
+                labels: @json($salesData['byDay']->map(function($item) { return \Carbon\Carbon::parse($item['date'])->format('d/m'); })),
+                datasets: [{
+                    label: 'Vendas (R$)',
+                    data: @json($salesData['byDay']->map(function($item) { return $item['total']; })),
+                    borderColor: 'rgb(59, 130, 246)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
             },
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        return context.label + ': R$ ' + context.parsed.toLocaleString('pt-BR');
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'R$ ' + value.toLocaleString('pt-BR');
+                            }
+                        }
                     }
                 }
             }
-        }
+        });
     }
+    @endif
+
+    // Gráfico de Vendas por Forma de Pagamento
+    @if($salesData['byPayment']->count() > 0)
+    const salesByPaymentElement = document.getElementById('salesByPaymentChart');
+    if (salesByPaymentElement) {
+        const salesByPaymentCtx = salesByPaymentElement.getContext('2d');
+        new Chart(salesByPaymentCtx, {
+            type: 'doughnut',
+            data: {
+                labels: @json($salesData['byPayment']->map(function($payment) { return ucfirst($payment['payment_mode']); })),
+                datasets: [{
+                    data: @json($salesData['byPayment']->map(function($payment) { return $payment['total']; })),
+                    backgroundColor: [
+                        'rgba(59, 130, 246, 0.8)',
+                        'rgba(16, 185, 129, 0.8)',
+                        'rgba(245, 158, 11, 0.8)',
+                        'rgba(239, 68, 68, 0.8)',
+                        'rgba(139, 92, 246, 0.8)'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': R$ ' + context.parsed.toLocaleString('pt-BR');
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    @endif
 });
-@endif
 </script>
 @endif
 @endsection
+
