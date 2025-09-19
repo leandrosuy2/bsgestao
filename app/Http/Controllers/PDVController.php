@@ -563,6 +563,9 @@ class PDVController extends Controller
                     }
                 }
 
+                // Verificar se a venda deve ter NFe (baseado no valor ou outros critérios)
+                $deveTerNfe = $this->deveGerarNfe($finalTotal, $request);
+                
                 $sale->update([
                     'customer_id' => $request->customer_id,
                     'seller_id' => $seller_id,
@@ -575,6 +578,7 @@ class PDVController extends Controller
                     'sold_at' => now(),
                     'payment_mode' => $modoPagamento,
                     'installment_due_date' => $dataVencimento,
+                    'has_nfe' => $deveTerNfe,
                     // Salva observação mesmo em vendas normais
                     'installment_notes' => $request->observacoes_prazo ?? null,
                 ]);
@@ -593,12 +597,16 @@ class PDVController extends Controller
 
                         // Criar movimentação de caixa apenas para pagamentos imediatos
                         if ($pagamento['tipo'] !== 'prazo') {
+                            $descricaoMovimentacao = $deveTerNfe 
+                                ? "Venda PDV (NF) #{$sale->id} - " . ucfirst($pagamento['tipo'])
+                                : "Venda PDV (Sem NF) #{$sale->id} - " . ucfirst($pagamento['tipo']);
+                                
                             CashMovement::create([
                                 'cash_register_id' => $register->id,
                                 'user_id' => Auth::id(),
                                 'type' => 'in',
                                 'amount' => $pagamento['valor'],
-                                'description' => "Venda #{$sale->id} - " . ucfirst($pagamento['tipo']),
+                                'description' => $descricaoMovimentacao,
                             ]);
                         }
                     }
@@ -915,5 +923,35 @@ class PDVController extends Controller
                 'error' => $e->getMessage()
             ]);
         }
+    }
+
+    /**
+     * Determina se uma venda deve gerar NFe
+     */
+    private function deveGerarNfe($valorTotal, $request)
+    {
+        // Critérios para gerar NFe:
+        // 1. Valor total maior que R$ 100,00 (configurável)
+        // 2. Cliente informado (não é venda avulsa)
+        // 3. Parâmetro explícito no request
+        
+        $valorMinimoNfe = 100.00; // Pode ser configurado no futuro
+        
+        // Se tem parâmetro explícito no request
+        if ($request->has('gerar_nfe') && $request->gerar_nfe === true) {
+            return true;
+        }
+        
+        // Se tem cliente informado e valor acima do mínimo
+        if ($request->customer_id && $valorTotal >= $valorMinimoNfe) {
+            return true;
+        }
+        
+        // Se valor muito alto (acima de R$ 500), sempre gerar NFe
+        if ($valorTotal >= 500.00) {
+            return true;
+        }
+        
+        return false;
     }
 }

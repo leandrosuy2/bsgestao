@@ -721,6 +721,9 @@ class NfeController extends Controller
                 $nfe->chave_nfe = $response['dados']['chave_nfe'] ?? null;
                 $nfe->status_sefaz = $response['dados']['status'] ?? null;
                 $nfe->mensagem_erro = null;
+                
+                // Buscar vendas que devem ter esta NFe e conectar
+                $this->conectarNfeComVendas($nfe);
             } else {
                 $nfe->status = 'erro';
                 $nfe->mensagem_erro = $response['mensagem'] ?? 'Erro desconhecido';
@@ -1287,6 +1290,66 @@ class NfeController extends Controller
                 'erro' => 'Erro interno: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Conecta NFe com vendas que devem ter nota fiscal
+     */
+    private function conectarNfeComVendas($nfe)
+    {
+        try {
+            // Buscar vendas da mesma empresa que devem ter NFe mas ainda não têm
+            $vendas = \App\Models\Sale::where('company_id', $nfe->company_id)
+                ->where('has_nfe', true)
+                ->whereNull('nfe_id')
+                ->where('status', 'completed')
+                ->where('sold_at', '>=', now()->subDays(7)) // Apenas vendas dos últimos 7 dias
+                ->orderBy('sold_at', 'desc')
+                ->get();
+
+            foreach ($vendas as $venda) {
+                // Verificar se a venda é compatível com a NFe
+                if ($this->vendaCompativelComNfe($venda, $nfe)) {
+                    $venda->update(['nfe_id' => $nfe->id]);
+                    
+                    \Log::info('NFe conectada com venda', [
+                        'nfe_id' => $nfe->id,
+                        'sale_id' => $venda->id,
+                        'valor_venda' => $venda->final_total,
+                        'valor_nfe' => $nfe->valor_total
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('Erro ao conectar NFe com vendas: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Verifica se uma venda é compatível com uma NFe
+     */
+    private function vendaCompativelComNfe($venda, $nfe)
+    {
+        // Verificar se os valores são próximos (diferença de até R$ 10)
+        $diferencaValor = abs($venda->final_total - $nfe->valor_total);
+        if ($diferencaValor > 10.00) {
+            return false;
+        }
+
+        // Verificar se o cliente é o mesmo (se informado)
+        if ($venda->customer_id) {
+            $cliente = \App\Models\Customer::find($venda->customer_id);
+            if ($cliente) {
+                $cpfCnpjCliente = preg_replace('/\D/', '', $cliente->cpf_cnpj ?? '');
+                $cpfCnpjNfe = preg_replace('/\D/', '', $nfe->cpf_destinatario ?? $nfe->cnpj_destinatario ?? '');
+                
+                if ($cpfCnpjCliente && $cpfCnpjNfe && $cpfCnpjCliente !== $cpfCnpjNfe) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 }
 

@@ -16,6 +16,8 @@ class Sale extends Model
         'company_id',
         'customer_id',
         'seller_id',
+        'nfe_id',
+        'has_nfe',
         'total',
         'discount',
         'discount_type',
@@ -77,6 +79,11 @@ class Sale extends Model
     public function cancelledBy()
     {
         return $this->belongsTo(User::class, 'cancelled_by');
+    }
+
+    public function nfe()
+    {
+        return $this->belongsTo(Nfe::class);
     }
 
     // Verificar se é pagamento a prazo
